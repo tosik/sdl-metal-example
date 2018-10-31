@@ -10,6 +10,10 @@ int main(int argc, char **argv) {
 
   auto renderer = SDL_CreateRenderer(window, 1, SDL_RENDERER_ACCELERATED);
 
+  auto texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
+                                   SDL_TEXTUREACCESS_TARGET, 640, 480);
+  SDL_SetRenderTarget(renderer, texture);
+
   bool firsttime = true;
 
   while (true) {
@@ -22,8 +26,7 @@ int main(int argc, char **argv) {
     id<MTLRenderCommandEncoder> encoder =
         (id<MTLRenderCommandEncoder>)SDL_RenderGetMetalCommandEncoder(renderer);
 
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
@@ -51,7 +54,7 @@ int main(int argc, char **argv) {
     }
 
     {
-      SDL_Rect rect{100, 100, 50, 50};
+      SDL_Rect rect{150, 100, 50, 50};
       const float verts[] = {(float)rect.x,
                              (float)rect.y + (float)rect.h,
                              (float)rect.x,
@@ -69,8 +72,11 @@ int main(int argc, char **argv) {
                   vertexCount:4];
     }
 
+    SDL_SetRenderTarget(renderer, NULL);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+
     SDL_RenderPresent(renderer);
-    SDL_Delay(50);
+    SDL_Delay(10);
 
     // for Mojave glitch
     if (firsttime) {
