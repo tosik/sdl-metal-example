@@ -72,6 +72,7 @@ int main(int argc, char **argv) {
     SDL_RenderPresent(renderer);
     SDL_Delay(50);
 
+    // for Mojave glitch
     if (firsttime) {
       SDL_SetWindowSize(window, 640, 480);
       firsttime = false;
