@@ -1,6 +1,9 @@
 #include <Metal/Metal.h>
 #include <QuartzCore/CAMetalLayer.h>
 #include <SDL2/SDL.h>
+#include <string>
+
+#include "shaders_metal_osx.h"
 
 int main(int argc, char **argv) {
   SDL_Init(SDL_INIT_EVERYTHING);
@@ -9,9 +12,20 @@ int main(int argc, char **argv) {
       SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
   auto renderer = SDL_CreateRenderer(window, 1, SDL_RENDERER_ACCELERATED);
+  SDL_RenderChangeMetalShader(renderer, shader_metallib, shader_metallib_len);
 
-  auto texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
-                                   SDL_TEXTUREACCESS_TARGET, 640, 480);
+  SDL_RendererInfo info;
+  SDL_GetRenderDriverInfo(1, &info);
+  if (std::string(info.name) == "metal") {
+    printf("Rendering API is Metal\n");
+  } else {
+    return -1;
+  }
+
+  auto texture = SDL_CreateTextureSpecifiedMetalFragmentShader(
+      renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 640, 480,
+      "SDL_MyCopy_fragment");
+
   SDL_SetRenderTarget(renderer, texture);
 
   bool firsttime = true;
