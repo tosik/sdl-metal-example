@@ -19,7 +19,7 @@ vertex SolidVertexOutput SDL_Solid_vertex(
 }
 
 fragment float4 SDL_Solid_fragment(constant float4 &col [[buffer(0)]]) {
-  return 1.0f;
+  return col;
 }
 
 struct CopyVertexOutput {
@@ -101,9 +101,45 @@ fragment float4 SDL_NV21_fragment(CopyVertexOutput vert [[stage_in]],
                       dot(yuv, decode.Bcoeff), 1.0);
 }
 
-fragment float4 SDL_MyCopy_fragment(CopyVertexOutput vert [[stage_in]],
-                                    constant float4 &col [[buffer(0)]],
-                                    texture2d<float> tex [[texture(0)]],
-                                    sampler s [[sampler(0)]]) {
-  return tex.sample(s, vert.texcoord) * 1;
+fragment float4 mask_fragment(CopyVertexOutput vert [[stage_in]],
+                              constant float4 &col [[buffer(0)]],
+                              texture2d<float> tex [[texture(0)]],
+                              constant float2 &resolution [[buffer(1)]],
+                              sampler s [[sampler(0)]]) {
+  // mask
+  float4 mask(0, 0, 0, 0);
+  float4 sample = tex.sample(s, float2(vert.texcoord));
+  if ((sample.x + sample.y + sample.z) / 3.0f >= 0.5f) {
+    mask = float4(1, 1, 1, 1);
+  }
+
+  return mask * sample;
+}
+
+fragment float4 blur_fragment(CopyVertexOutput vert [[stage_in]],
+                              constant float4 &col [[buffer(0)]],
+                              texture2d<float> tex [[texture(0)]],
+                              constant float2 &resolution [[buffer(1)]],
+                              sampler s [[sampler(0)]]) {
+  // gaussian-blur
+  float4 blur = float4(0, 0, 0, 0);
+
+  float2 off1 = float2(1.3846153846f, 1.3846153846f);
+  float2 off2 = float2(3.2307692308f, 3.2307692308f);
+  float2 off3 = float2(1.3846153846f, -1.3846153846f);
+  float2 off4 = float2(-3.2307692308f, 3.2307692308f);
+
+  blur += tex.sample(s, vert.texcoord) * 0.2270270270f;
+
+  blur += tex.sample(s, vert.texcoord + off1 / resolution) * 0.3162162162f / 2;
+  blur += tex.sample(s, vert.texcoord - off1 / resolution) * 0.3162162162f / 2;
+  blur += tex.sample(s, vert.texcoord + off2 / resolution) * 0.0702702703f / 2;
+  blur += tex.sample(s, vert.texcoord - off2 / resolution) * 0.0702702703f / 2;
+
+  blur += tex.sample(s, vert.texcoord + off3 / resolution) * 0.3162162162f / 2;
+  blur += tex.sample(s, vert.texcoord - off3 / resolution) * 0.3162162162f / 2;
+  blur += tex.sample(s, vert.texcoord + off4 / resolution) * 0.0702702703f / 2;
+  blur += tex.sample(s, vert.texcoord - off4 / resolution) * 0.0702702703f / 2;
+
+  return blur;
 }

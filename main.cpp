@@ -22,11 +22,16 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  auto texture = SDL_CreateTextureSpecifiedMetalFragmentShader(
-      renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 640, 480,
-      "SDL_MyCopy_fragment");
+  auto texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
+                                   SDL_TEXTUREACCESS_TARGET, 640, 480);
 
-  SDL_SetRenderTarget(renderer, texture);
+  auto texture_mask = SDL_CreateTextureSpecifiedMetalFragmentShader(
+      renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 640, 480,
+      "mask_fragment");
+
+  auto texture_blur = SDL_CreateTextureSpecifiedMetalFragmentShader(
+      renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 640, 480,
+      "blur_fragment");
 
   bool firsttime = true;
 
@@ -36,18 +41,76 @@ int main(int argc, char **argv) {
     if (event.type == SDL_QUIT)
       break;
 
-    auto layer = (CAMetalLayer *)SDL_RenderGetMetalLayer(renderer);
-    id<MTLRenderCommandEncoder> encoder =
-        (id<MTLRenderCommandEncoder>)SDL_RenderGetMetalCommandEncoder(renderer);
+    /*
+        auto layer = (CAMetalLayer *)SDL_RenderGetMetalLayer(renderer);
+        id<MTLRenderCommandEncoder> encoder =
+            (id<MTLRenderCommandEncoder>)SDL_RenderGetMetalCommandEncoder(renderer);
+    */
 
+    SDL_SetRenderTarget(renderer, texture);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderTarget(renderer, texture);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
 
-    SDL_Rect r{0, 0, 0, 0};
-    SDL_RenderFillRect(renderer, &r);
+    SDL_SetRenderTarget(renderer, texture_mask);
+    SDL_SetTextureBlendMode(texture_mask, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
 
+    SDL_SetRenderTarget(renderer, texture_blur);
+    SDL_SetTextureBlendMode(texture_blur, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderTarget(renderer, texture);
+
+    // white box
+    {
+      SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+      SDL_Rect box{50, 50, 50, 50};
+      SDL_RenderFillRect(renderer, &box);
+    }
+
+    // red box
+    {
+      SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+      SDL_Rect box{100, 50, 50, 50};
+      SDL_RenderFillRect(renderer, &box);
+    }
+
+    // green box
+    {
+      SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+      SDL_Rect box{150, 50, 50, 50};
+      SDL_RenderFillRect(renderer, &box);
+    }
+
+    // magenta box
+    {
+      SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+      SDL_Rect box{150, 50, 50, 50};
+      SDL_RenderFillRect(renderer, &box);
+    }
+
+    // cyan box
+    {
+      SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+      SDL_Rect box{200, 50, 50, 50};
+      SDL_RenderFillRect(renderer, &box);
+    }
+
+    // blue box
+    {
+      SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+      SDL_Rect box{250, 50, 50, 50};
+      SDL_RenderFillRect(renderer, &box);
+    }
+
+    /*
     {
       SDL_Rect rect{50, 50, 50, 50};
       const float verts[] = {(float)rect.x,
@@ -85,9 +148,30 @@ int main(int argc, char **argv) {
                   vertexStart:0
                   vertexCount:4];
     }
+    */
+
+    SDL_SetRenderTarget(renderer, NULL);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderTarget(renderer, texture_mask);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+    SDL_SetRenderTarget(renderer, texture_blur);
+    SDL_RenderCopy(renderer, texture_mask, NULL, NULL);
+
+    for (int i = 0; i < 100; i++) {
+      SDL_SetRenderTarget(renderer, texture_blur);
+      SDL_RenderCopy(renderer, texture_blur, NULL, NULL);
+    }
 
     SDL_SetRenderTarget(renderer, NULL);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+    SDL_SetRenderTarget(renderer, NULL);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_SetTextureBlendMode(texture_blur, SDL_BLENDMODE_ADD);
+    SDL_RenderCopy(renderer, texture_blur, NULL, NULL);
 
     SDL_RenderPresent(renderer);
     SDL_Delay(10);
